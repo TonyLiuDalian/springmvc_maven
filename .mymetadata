@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-module
+  type="WEB"
+  name="springMybatisMaven"
+  id="myeclipse.1413513952498"
+  context-root="/springMybatisMaven"
+  j2ee-spec="6.0"
+  archive="springMybatisMaven.war">
+  <attributes>
+    <attribute name="webrootdir" value="src/main/webapp" />
+  </attributes>
+</project-module>
+

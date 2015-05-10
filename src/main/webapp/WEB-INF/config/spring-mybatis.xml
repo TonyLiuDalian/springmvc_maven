@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx" xmlns:aop="http://www.springframework.org/schema/aop" xsi:schemaLocation="
+http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans-3.0.xsd 
+http://www.springframework.org/schema/tx 
+http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+http://www.springframework.org/schema/aop 
+http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+">
+<!-- Spring 配置00 定义数据源和连接池（druid好像是albaba推出的一款连接池jar包）   开始  -->
+	<!-- 配置数据源 -->
+	<bean name="dataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+		<property name="url" value="${jdbc_url}" />
+		<property name="username" value="${jdbc_username}" />
+		<property name="password" value="${jdbc_password}" />
+
+		<!-- 初始化连接大小 -->
+		<property name="initialSize" value="0" />
+		<!-- 连接池最大使用连接数量 -->
+		<property name="maxActive" value="20" />
+		<!-- 连接池最大空闲 -->
+		<property name="maxIdle" value="20" />
+		<!-- 连接池最小空闲 -->
+		<property name="minIdle" value="0" />
+		<!-- 获取连接最大等待时间 -->
+		<property name="maxWait" value="60000" />
+
+		<!-- <property name="poolPreparedStatements" value="true" /> <property name="maxPoolPreparedStatementPerConnectionSize" value="33" /> -->
+
+		<property name="validationQuery" value="${validationQuery}" />
+		<property name="testOnBorrow" value="false" />
+		<property name="testOnReturn" value="false" />
+		<property name="testWhileIdle" value="true" />
+
+		<!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+		<property name="timeBetweenEvictionRunsMillis" value="60000" />
+		<!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+		<property name="minEvictableIdleTimeMillis" value="25200000" />
+
+		<!-- 打开removeAbandoned功能 -->
+		<property name="removeAbandoned" value="true" />
+		<!-- 1800秒，也就是30分钟 -->
+		<property name="removeAbandonedTimeout" value="1800" />
+		<!-- 关闭abanded连接时输出错误日志 -->
+		<property name="logAbandoned" value="true" />
+
+		<!-- 监控数据库 -->
+		<!-- <property name="filters" value="stat" /> -->
+		<property name="filters" value="mergeStat" />
+	</bean>
+<!-- Spring 配置00 定义数据源和连接池（druid好像是albaba推出的一款连接池jar包）   结束  -->
+	
+	
+	
+	
+	
+<!-- SM整合      开始 -->
+<!--下面的配置，会在调用com.shangxun.dao里的mapper接口类的时候自动去，com.shangxun,mapping文件夹下找对应id相同的sql语句标签，让mybatis执行sql操作  -->
+
+	<!--mybatis+spring配置01、 myBatis文件 ，导入mybatis对spring支持的包，
+	            在spring的配置文件了配置指定的sqlSessionFactoryBean到茈岸眠的bean中，自动扫描的sql的xml文件-->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<!-- 自动扫描entity目录, 省掉Configuration.xml里的手工配置 -->
+		<property name="mapperLocations" value="classpath:com/shangxun/mapping/*.xml" />
+	</bean>
+ 
+   <!--mybatis+spring配置02,指定扫描mapper接口类的文件夹范围  -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.shangxun.mapper" />
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+	</bean>
+
+<!-- SM整合      结束-->
+
+
+
+<!--spring配置01，请求的事务管理     开始  -->
+ 
+	<!--配置事务管理器执行么回滚等 -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<!-- 注解方式配置事物 -->
+	<!-- <tx:annotation-driven transaction-manager="transactionManager" /> -->
+ 
+	<!-- 定义spring切点tx，拦截器方式配置事物 ,把指定格式的请求，和spring的名字叫transactionManager的事务管理器关联起来。
+	     这样，这些被拦截的请求，就会被spring的事务功能托管-->
+	<tx:advice id="transactionAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="add*" propagation="REQUIRED" />
+			<tx:method name="append*" propagation="REQUIRED" />
+			<tx:method name="insert*" propagation="REQUIRED" />
+			<tx:method name="save*" propagation="REQUIRED" />
+			<tx:method name="update*" propagation="REQUIRED" />
+			<tx:method name="modify*" propagation="REQUIRED" />
+			<tx:method name="edit*" propagation="REQUIRED" />
+			<tx:method name="delete*" propagation="REQUIRED" />
+			<tx:method name="remove*" propagation="REQUIRED" />
+			<tx:method name="repair" propagation="REQUIRED" />
+			<tx:method name="delAndRepair" propagation="REQUIRED" />
+
+			<tx:method name="get*" propagation="SUPPORTS" />
+			<tx:method name="find*" propagation="SUPPORTS" />
+			<tx:method name="load*" propagation="SUPPORTS" />
+			<tx:method name="search*" propagation="SUPPORTS" />
+			<tx:method name="datagrid*" propagation="SUPPORTS" />
+
+			<tx:method name="*" propagation="SUPPORTS" />
+		</tx:attributes>
+	</tx:advice>
+	
+	<!--定义spring切面 AOP,
+	         把上面定义的拦截什么样请求的切刀tx:transactionAdvice和下面的切面范围（service下所以的实现类）关联起来-->
+	<aop:config>
+		<aop:pointcut id="transactionPointcut" expression="execution(* com.shangxun.service..*Impl.*(..))" />
+		<aop:advisor pointcut-ref="transactionPointcut" advice-ref="transactionAdvice" />
+	</aop:config>
+
+<!--spring配置01，请求的事务管理     开结束 -->
+
+
+
+<!--上面spring的事务管理管理的实现类，这里连接池的事务管理有管理了service文件夹下所有的类，不知道是否可以不用重复管理？  -->
+
+<!--spring配置02，请求的用spring拦截器的 事务管理     开始  -->
+
+    <!--下面的配置，是spirng拦截器方式对事务的管理。。。。  -->
+	<!-- 调用spring类来构建一个拦截器bean-->
+	<bean id="druid-stat-interceptor" class="com.alibaba.druid.support.spring.stat.DruidStatInterceptor"></bean>
+	
+	<!-- 调用spring定义一个spring拦截器将要作用到的范围的描述性的bean对象，service文件夹下所有的类class -->
+	<bean id="druid-stat-pointcut" class="org.springframework.aop.support.JdkRegexpMethodPointcut" scope="prototype">
+		<property name="patterns">
+			<list>
+				<value>com.shangxun.service.*</value>
+			</list>
+		</property>
+	</bean>
+	
+	<!--定义一个切面，把上面的spring的事务拦截器，和拦截器作用范围描述bean对象在这里关联装配起来-->
+	<aop:config>
+		<aop:advisor advice-ref="druid-stat-interceptor" pointcut-ref="druid-stat-pointcut" />
+	</aop:config>
+
+   <!--spring配置02，请求的用spring拦截器的 事务管理     结束  -->	
+	
+	
+   <!--spring配置03，spring框架上传用到的类  -->
+   <bean id="multipartResolver"  
+        class="org.springframework.web.multipart.commons.CommonsMultipartResolver">  
+        <!-- set the max upload size100MB -->  
+        <property name="maxUploadSize">  
+            <value>104857600</value>  
+        </property>  
+        <property name="maxInMemorySize">  
+            <value>4096</value>  
+        </property>  
+    </bean>  
+	
+	
+</beans>
